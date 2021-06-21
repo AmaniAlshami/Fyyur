@@ -251,6 +251,7 @@ def show_venue(venue_id):
   #data = list(filter(lambda d: d['id'] == venue_id, data1))[0]
   print(gen_data)
 
+
   artist_info = Artist.query.with_entities(Artist.id,Artist.name,Artist.image_link,Shows.start_time).join(Shows,Artist.id==Shows.venue_id).filter(Shows.venue_id==venue_id).all()
   now = datetime.now()
   upcoming_shows_count = 0
