@@ -323,26 +323,31 @@ def delete_venue(venue_id):
   # TODO: Complete this endpoint for taking a venue_id, and using
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
   print("HI_____________")
+  print(venue_id)
   try:
+      Venue_genre.query.filter_by(venue_id=venue_id).delete()
+      db.session.commit()
       Venue.query.filter_by(id=venue_id).delete()
       db.session.commit()
       error = False
+      print("True_____________")
   except:
       db.session.rollback()
       error = True
+      print("False_____________")
+      print(sys.exc_info())
   finally:
-      db.session.close()
-
+    db.session.close()
   if error : 
-    flash('An error occurred. Venue ' + Venue.query(Venue.name).filter_by(id=venue_id) + ' could not be deleted.')
-    return render_template('pages/home.html')   
+    #flash('An error occurred. Venue ' + "NONE" + ' could not be deleted.')
+    return redirect(url_for('/venues/<venue_id>'))  
   elif not error:    
-    flash('Venue ' + Venue.query(Venue.name).filter_by(id=venue_id) + ' was successfully deleted!') 
-    return render_template('pages/home.html')     
+    #flash('Venue ' + "NONE" + ' was successfully deleted!') 
+    return redirect(url_for('venues'))      
 
   # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
   # clicking that button delete it from the db then redirect the user to the homepage
-  return None
+  #return None
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -480,9 +485,39 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
   form = ArtistForm()
+ # name = Artist.query.with_entities(Artist.name).filter_by(id=artist_id).all()[0][0]
+  artist = Artist.query.filter_by(id=artist_id).all()[0]
+  artist_info = Artist.query.get(artist_id)
+
+  artist.name = request.form['name']
+  artist.city = request.form['city']
+  artist.state =request.form['state']
+  artist.phone =request.form['phone']
+  artist.image_link =request.form['image_link']
+  artist.facebook_link =request.form['facebook_link']
+  artist.website_link =request.form['website_link']
+  artist.seeking_description =request.form['seeking_description']
+  artist.seeking_venue = True if request.form.get('seeking_venue',False)=='y' else False
+
+  genres = request.form.getlist('genres')
+  i = 0
+  for gen in genres:
+    gen_o = Artist_genre.query.with_entities(Artist_genre.genres).filter_by(artist_id=11).all()
+    if gen_o in genres:
+      pass
+    elif gen_o not in  genres:
+      # delete
+      pass
+    if gen not in gen_o :
+      # add
+      pass 
+
+
+
+  '''
   artist={
     "id": 4,
-    "name": "Guns N Petals",
+    "name": name,
     "genres": ["Rock n Roll"],
     "city": "San Francisco",
     "state": "CA",
@@ -493,6 +528,7 @@ def edit_artist(artist_id):
     "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
     "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
   }
+  '''
   # TODO: populate form with fields from artist with ID <artist_id>
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
