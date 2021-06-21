@@ -250,7 +250,35 @@ def show_venue(venue_id):
     gen_data.append(get_genres[g].genres)
   #data = list(filter(lambda d: d['id'] == venue_id, data1))[0]
   print(gen_data)
-  return render_template('pages/show_venue.html', venue=data[0],genres=gen_data)
+
+  artist_info = Artist.query.with_entities(Artist.id,Artist.name,Artist.image_link,Shows.start_time).join(Shows,Artist.id==Shows.venue_id).filter(Shows.venue_id==venue_id).all()
+  now = datetime.now()
+  upcoming_shows_count = 0
+  upcoming_shows = []
+  past_shows_count = 0
+  past_shows = []
+  for i in range(len(artist_info)):
+    if now <= artist_info[i][3]:
+        upcoming_shows_count+=1
+        new = {
+          "artist_id": artist_info[i][0] ,
+          "artist_name": artist_info[i][1],
+          "artist_image_link":artist_info[i][2] ,
+          "start_time": artist_info[i][3]} 
+        upcoming_shows.append(new)
+    elif now > artist_info[i][3]:
+          past_shows_count+=1
+          new = {
+          "artist_id": artist_info[i][0] ,
+          "artist_name": artist_info[i][1],
+          "artist_image_link":artist_info[i][2] ,
+          "start_time": artist_info[i][3]}  
+          past_shows.append(new)
+
+
+
+  return render_template('pages/show_venue.html', venue=data[0],genres=gen_data,upcoming_shows_count=upcoming_shows_count,
+  past_shows_count=past_shows_count,upcoming_shows=upcoming_shows,past_shows=past_shows)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -457,28 +485,35 @@ def show_artist(artist_id):
   for g in range(len(get_genres)):
     gen_data.append(get_genres[g].genres)
   #print(gen_data)  
-  '''
-  #Venues = Venue.query.join(Shows,Shows.venue_id==Venue.id).filter(Shows.artist_id==artist_id).all()
-  Venues_info = db.session.query(Venue,Shows.start_time).join(Shows,Shows.venue_id==Venue.id).filter(Shows.artist_id==id).all()
+  
+  Venues_info = Venue.query.with_entities(Venue.id,Venue.name,Venue.image_link,Shows.start_time).join(Shows,Venue.id==Shows.venue_id).filter(Shows.artist_id==artist_id).all()
   now = datetime.now()
+  print("________",type(now))
   upcoming_shows_count = 0
-  upcoming_shows = {
-      "venue_id": 0 ,
-      "venue_name": '',
-      "venue_image_link":'' ,
-      "start_time": ''}
+  upcoming_shows = []
   past_shows_count = 0
   past_shows = []
   for i in range(len(Venues_info)):
-    if now <= Venues_info[i][1]:
+    print("________",type(Venues_info[i][3]))
+    if now <= Venues_info[i][3]:
         upcoming_shows_count+=1
-        upcoming_shows.append(Venues_info[i][0])
-    elif now > Venues_info[i][1]:
+        new = {
+          "venue_id": Venues_info[i][0] ,
+          "venue_name": Venues_info[i][1],
+          "venue_image_link":Venues_info[i][2] ,
+          "start_time": Venues_info[i][3]} 
+        upcoming_shows.append(new)
+    elif now > Venues_info[i][3]:
          past_shows_count+=1
-         past_shows.append(Venues_info[i][0])
-'''
-  return render_template('pages/show_artist.html',artist=data[0],genres=gen_data)
+         new = {
+          "venue_id": Venues_info[i][0] ,
+          "venue_name": Venues_info[i][1],
+          "venue_image_link":Venues_info[i][2] ,
+          "start_time": Venues_info[i][3]} 
+         past_shows.append(new)
 
+  return render_template('pages/show_artist.html',artist=data[0],genres=gen_data,upcoming_shows_count=upcoming_shows_count,
+  past_shows_count=past_shows_count,upcoming_shows=upcoming_shows,past_shows=past_shows)
 
 #  Update
 #  ----------------------------------------------------------------
@@ -669,11 +704,23 @@ def shows():
     "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
     "start_time": "2035-04-15T20:00:00.000Z"
   }]
-  shows = Shows.query.all()
-  #artist_name = Artist.query.with_entities(Artist.name).filter(Shows.artist_id==Artist.id)
-  #venue_name = Venue.query.with_entities(Venue.name).filter(Shows.venue_id==Venue.id)
 
-  return render_template('pages/shows.html', shows=shows)#,artist_name=artist_name,venue_name=venue_name)
+  data1 = []
+  shows = Shows.query.all()
+  for i in range(len(shows)):
+    artist =Artist.query.with_entities(Artist.id,Artist.name,Artist.image_link).join(Shows,Artist.id==Shows.artist_id).filter_by(id=shows[i].id).all()[0]
+    venue =Venue.query.with_entities(Venue.id,Venue.name).join(Shows,Venue.id==Shows.venue_id).filter_by(id=shows[i].id).all()[0]
+    new = {
+    "venue_id": venue.id,
+    "venue_name": venue.name,
+    "artist_id":artist.id,
+    "artist_name": artist.name,
+    "artist_image_link": artist.image_link,
+    "start_time": shows[i].start_time
+    }
+    data1.append(new)
+    print(data1)
+  return render_template('pages/shows.html', shows=data1)#,artist_name=artist_name,venue_name=venue_name)
 
 
 @app.route('/shows/create')
@@ -687,12 +734,35 @@ def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
 
+  try:
+    artist_id = request.form['artist_id']
+    venue_id = request.form['venue_id']
+    start_time =request.form['start_time']
+  
+    new_show = Shows(artist_id=artist_id,venue_id=venue_id,start_time=start_time)
+    db.session.add(new_show)
+    db.session.commit()
+
+    error = False
+  except:
+    db.session.rollback()
+    error = True
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  if error : 
+    flash('An error occurred. Show could not be listed.')
+    return render_template('pages/home.html')   
+  elif not error:   
+    flash('Show was successfully listed!')
+    return render_template('pages/home.html')   
+
   # on successful db insert, flash success
-  flash('Show was successfully listed!')
+ # flash('Show was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Show could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+ # return render_template('pages/home.html')
 
 @app.errorhandler(404)
 def not_found_error(error):
