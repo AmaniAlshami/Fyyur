@@ -10,7 +10,7 @@
 			ID: {{ venue.id }}
 		</p>
 		<div class="genres">
-			{% for genre in venue.genres %}
+			{% for genre in genres %}
 			<span class="genre">{{ genre }}</span>
 			{% endfor %}
 		</div>
@@ -76,6 +76,19 @@
 </section>
 
 <a href="/venues/{{ venue.id }}/edit"><button class="btn btn-primary btn-lg">Edit</button></a>
+<button class="btn btn-primary btn-lg" id ='deleteButton',data-id ="{{ venue.id }}" >Delete</button>
 
 {% endblock %}
+
+<script>
+
+const deleteBtns = document.getElementById('deleteButton');
+		deleteBtns.onclick = function(e){
+		const venueId = e.target.dataset['id'];
+		fetch('/venues/'+venueId,{
+			method : 'DELETE',
+		})
+	}
+
+</script>
 
