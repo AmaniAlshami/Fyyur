@@ -6,7 +6,11 @@ import json
 from threading import Thread
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for,jsonify
+from flask import (Flask, 
+render_template,
+ request, Response, 
+ flash, redirect,
+  url_for,jsonify)
 import logging
 from logging import Formatter, FileHandler, error
 from flask_wtf import Form
@@ -16,6 +20,7 @@ from datetime import datetime
 import sys
 from  models import db
 from flask_migrate import Migrate
+from models import  Venue , Venue_genre , Artist ,Artist_genre ,Shows 
 
 
 
@@ -33,10 +38,6 @@ db.app = app
 migrate = Migrate(app, db)
 
 # [DONE] TODO: connect to a local postgresql database 
-
-
-from models import  Venue , Venue_genre , Artist ,Artist_genre ,Shows 
-
 
 
 #----------------------------------------------------------------------------#
@@ -82,8 +83,8 @@ def search_venues():
 
   search_term = request.form.get('search_term', '')
   search = "%{}%".format(search_term)
-  results = Venue.query.filter(Venue.name.like(search)).all()
-  count = Venue.query.filter(Venue.name.like(search)).count()
+  results = Venue.query.filter(Venue.name.ilike(search)).all()
+  count = Venue.query.filter(Venue.name.ilike(search)).count()
 
   return render_template('pages/search_venues.html',search_term=search_term,results=results,count=count)
 
@@ -144,19 +145,20 @@ def create_venue_form():
 def create_venue_submission():
   # [Done] TODO: insert form data as a new Venue record in the db, instead
   # [Done] TODO: modify data to be the data object returned from db insertion
-
-  try:
-      name = request.form['name']
-      city = request.form['city']
-      state =request.form['state']
-      address = request.form['address']
-      phone =request.form['phone']
-      image_link =request.form['image_link']
-      facebook_link =request.form['facebook_link']
-      website_link =request.form['website_link']
-      seeking_description =request.form['seeking_description']
-      genres = request.form.getlist('genres')
-      seeking_talent = True if request.form.get('seeking_talent') else False
+  form = VenueForm(request.form)
+ 
+  try: 
+      name = form.name.data
+      city = form.city.data
+      state =form.state.data
+      address = form.address.data
+      phone =form.phone.data
+      image_link = form.image_link.data
+      facebook_link = form.facebook_link.data
+      website_link =form.website_link.data
+      seeking_description =form.seeking_description.data
+      genres = form.genres.data
+      seeking_talent = True if form.seeking_talent.data else False
 
 
     
@@ -180,11 +182,11 @@ def create_venue_submission():
   finally:
       db.session.close()
   if error : 
-    flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
+    flash('An error occurred. Venue ' + form.name.data + ' could not be listed.')
     return render_template('pages/home.html')   
   elif not error:   
-    flash('Venue ' + request.form['name'] + ' was successfully listed!') 
-    return render_template('pages/home.html')   
+    flash('Venue ' + form.name.data + ' was successfully listed!') 
+    return render_template('pages/home.html', form=form)   
 
 
 
@@ -238,8 +240,8 @@ def search_artists():
   # search for "band" should return "The Wild Sax Band".
   search_term = request.form.get('search_term', '')
   search = "%{}%".format(search_term)
-  results = Artist.query.filter(Artist.name.like(search)).all()
-  count = Artist.query.filter(Artist.name.like(search)).count()
+  results = Artist.query.filter(Artist.name.ilike(search)).all()
+  count = Artist.query.filter(Artist.name.ilike(search)).count()
 
   return render_template('pages/search_artists.html',search_term=search_term,results=results,count=count)
 
@@ -440,18 +442,19 @@ def create_artist_submission():
   # called upon submitting the new artist listing form
   # [DONE] TODO: insert form data as a new Venue record in the db, instead
   # [DONE] TODO: modify data to be the data object returned from db insertion
+  form = ArtistForm(request.form)
   try:
-      name = request.form['name']
-      city = request.form['city']
-      state =request.form['state']
-      phone =request.form['phone']
-      image_link =request.form['image_link']
-      facebook_link =request.form['facebook_link']
-      website_link =request.form['website_link']
-      seeking_description =request.form['seeking_description']
-      genres = request.form.getlist('genres')
-      seeking_venue = True if request.form.get('seeking_venue') else False
-
+      name = form.name.data
+      city = form.city.data
+      state =form.state.data
+      phone =form.phone.data
+      image_link = form.image_link.data
+      facebook_link = form.facebook_link.data
+      website_link =form.website_link.data
+      seeking_description =form.seeking_description.data
+      genres = form.genres.data
+      seeking_venue = True if form.seeking_venue.data else False
+      
     
       new_artist = Artist(name=name,city=city,state=state,phone=phone,
       image_link=image_link,facebook_link=facebook_link,website_link=website_link,
@@ -473,10 +476,10 @@ def create_artist_submission():
   finally:
       db.session.close()
   if error : 
-    flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
+    flash('An error occurred. Artist ' + form.name.data + ' could not be listed.')
     return render_template('pages/home.html')   
   elif not error:   
-    flash('Artist ' + request.form['name'] + ' was successfully listed!') 
+    flash('Artist ' + form.name.data + ' was successfully listed!') 
     return render_template('pages/home.html')   
 
       
@@ -526,9 +529,10 @@ def create_show_submission():
   # [DONE] TODO: insert form data as a new Show record in the db, instead
 
   try:
-    artist_id = request.form['artist_id']
-    venue_id = request.form['venue_id']
-    start_time =request.form['start_time']
+    form = ShowForm(request.form)
+    artist_id = form.artist_id.data
+    venue_id = form.venue_id.data
+    start_time =form.start_time.data
   
     new_show = Shows(artist_id=artist_id,venue_id=venue_id,start_time=start_time)
     db.session.add(new_show)
